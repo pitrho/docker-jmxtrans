@@ -1,0 +1,24 @@
+FROM java:8u45-jdk
+MAINTAINER pitrho
+
+# Install jmxtrans
+RUN echo "debconf debconf/frontend select noninteractive" | debconf-set-selections
+RUN wget http://central.maven.org/maven2/org/jmxtrans/jmxtrans/%%JMXTRANS_VERSION%%/jmxtrans-%%JMXTRANS_VERSION%%.deb
+RUN dpkg -i jmxtrans-%%JMXTRANS_VERSION%%.deb
+
+# replace log configuration file inside jmxtrans-all.jar
+RUN mkdir /usr/share/jmxtrans/lib/tmp_jmxtrans
+ADD logback.xml /usr/share/jmxtrans/lib/tmp_jmxtrans
+RUN cd /usr/share/jmxtrans/lib \
+  && unzip jmxtrans-all.jar -d tmp_jmxtrans \
+  && cd tmp_jmxtrans \
+  && rm log4j.xml \
+  && jar cmf META-INF/MANIFEST.MF jmxtrans-all.jar * \
+  && mv jmxtrans-all.jar ../ \
+  && cd ../ \
+  && rm -rf tmp_jmxtrans
+
+ADD run-jmxtrans.sh /usr/bin/run-jmxtrans.sh
+RUN chmod +x /usr/bin/run-jmxtrans.sh
+
+CMD /usr/bin/run-jmxtrans.sh
